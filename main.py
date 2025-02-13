@@ -6,6 +6,13 @@ from core.config import settings
 
 app = FastAPI()
 
+@app.middleware("http")
+async def add_ngrok_header(request, call_next):
+    response = await call_next(request)
+    response.headers["ngrok-skip-browser-warning"] = "true"
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,18 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router, prefix=settings.API_PREFIX)
 
+app.include_router(api_router, prefix=settings.API_PREFIX)
 
 @app.get("/healthcheck")
 async def health_check():
     """Checks if server is active."""
     return {"status": "active"}
-
-
-
-# from fastapi.middleware.trustedhost import TrustedHostMiddleware
-# from fastapi.middleware.gzip import GZipMiddleware
-
-# app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-# app.add_middleware(GZipMiddleware)
