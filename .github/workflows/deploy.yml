@@ -1,46 +1,21 @@
-- name: Deploy to Staging Server
-  uses: appleboy/ssh-action@v1.0.3
-  with:
-    host: ${{secrets.SERVER_HOST}}
-    key: ${{secrets.SERVER_SSH_KEY}}
-    username: ${{secrets.SERVER_USERNAME}}
-    script: |
-      echo "Starting deployment..."
+name: deploy
 
-      # Navigate to project directory
-      cd fastapi-book-project
+on:
+  push:
+    branches:
+      - main
 
-      # Pull latest changes
-      echo "Pulling latest changes..."
-      git fetch --all
-      git pull origin main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-      # Setup virtual environment
-      echo "Setting up virtual environment..."
-      python3 -m venv venv || exit 1
-      source venv/bin/activate || exit 1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      # Upgrade pip
-      python -m pip install --upgrade pip || exit 1
-
-      # Install dependencies
-      echo "Installing dependencies..."
-      pip install -r requirements.txt || exit 1
-
-      # Stop existing FastAPI app if running
-      echo "Stopping existing application..."
-      pkill -f uvicorn || echo "No existing process found"
-      echo "Application stopped successfully"
-
-      # Start FastAPI app
-      echo "Starting FastAPI application..."
-      nohup uvicorn main:app --host 127.0.0.1 --port 8000 > app.log 2>&1 &
-      echo "FastAPI application started successfully"
-
-      # Install & configure Nginx
-      echo "Setting up Nginx..."
-      sudo apt update
-      sudo apt install -y nginx
-      sudo cp nginx/nginx.conf /etc/nginx/sites-available/default
-      sudo systemctl restart nginx
-      echo "Nginx configured and restarted successfully"
+      - name: Trigger Railway Deployment
+        run: |
+          curl -X POST "https://api.railway.app/v1/projects/${{ secrets.RAILWAY_PROJECT_ID }}/deployments" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.RAILWAY_API_TOKEN }}" \
+          --data '{"branch": "main"}'

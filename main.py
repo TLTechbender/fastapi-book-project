@@ -21,3 +21,11 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 async def health_check():
     """Checks if server is active."""
     return {"status": "active"}
+
+
+
+# from fastapi.middleware.trustedhost import TrustedHostMiddleware
+# from fastapi.middleware.gzip import GZipMiddleware
+
+# app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+# app.add_middleware(GZipMiddleware)

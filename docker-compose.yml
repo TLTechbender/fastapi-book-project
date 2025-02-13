@@ -12,11 +12,11 @@ services:
 
   nginx:
     build:
-      context: .
+      context: ./nginx
       dockerfile: Dockerfile.nginx
     container_name: nginx_proxy
     restart: always
     ports:
       - "80:80"
     depends_on:
-      - fastapi-book-project  # 👈 Match this with FastAPI service name
+      - fastapi-book-project  
