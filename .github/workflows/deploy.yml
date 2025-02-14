@@ -8,49 +8,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      # Setup virtual environment
-      - name: Setup Virtual Environment
+      - name: Trigger Railway Deployment
         run: |
-          python3 -m venv venv
-          source venv/bin/activate
-
-      # Install dependencies
-      - name: Install Dependencies
-        run: |
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install fastapi
-          pip install -r requirements.txt
-
-      # Start FastAPI Application
-      - name: Start FastAPI Application
-        run: |
-          source venv/bin/activate
-          uvicorn main:app --host 0.0.0.0 --port 8000 &
-          sleep 5
-
-      # Start ngrok Tunnel
-      - name: Start ngrok Tunnel
-        uses: pyroscope-io/setup-ngrok@v1
-        with:
-          auth_token: ${{ secrets.NGROK_AUTH_TOKEN }}
-
-      - name: Run ngrok
-        run: ngrok http 8000 --log=stdout > ngrok.log &
-
-      # Fetch ngrok URL and display it
-      - name: Fetch ngrok URL
-        run: |
-          sleep 10
-          NGROK_URL=""
-          while [ -z "$NGROK_URL" ]; do
-            sleep 2
-            NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url' || echo "")
-          done
-          echo "ngrok tunnel running at: $NGROK_URL"
+          curl -X POST "https://api.railway.app/v1/projects/${{ secrets.RAILWAY_PROJECT_ID }}/deployments" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.RAILWAY_API_TOKEN }}" \
+          --data '{"branch": "main"}'
