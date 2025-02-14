@@ -20,7 +20,7 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
 
-      # Upgrade pip and install dependencies
+      # Install dependencies
       - name: Install Dependencies
         run: |
           source venv/bin/activate
@@ -28,26 +28,29 @@ jobs:
           pip install fastapi
           pip install -r requirements.txt
 
-      # Start FastAPI application
+      # Start FastAPI Application
       - name: Start FastAPI Application
         run: |
           source venv/bin/activate
-          nohup uvicorn main:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
 
-      # Install and Start ngrok
+      # Start ngrok Tunnel
       - name: Start ngrok Tunnel
-        run: |
-          sudo apt update
-          sudo apt install -y jq
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
-          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-          nohup ngrok http 8000 > ngrok.log 2>&1 &
+        uses: pyroscope-io/setup-ngrok@v1
+        with:
+          auth_token: ${{ secrets.NGROK_AUTH_TOKEN }}
+
+      - name: Run ngrok
+        run: ngrok http 8000 --log=stdout > ngrok.log &
 
       # Fetch ngrok URL and display it
       - name: Fetch ngrok URL
         run: |
-          sleep 5
-          NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+          sleep 10
+          NGROK_URL=""
+          while [ -z "$NGROK_URL" ]; do
+            sleep 2
+            NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url' || echo "")
+          done
           echo "ngrok tunnel running at: $NGROK_URL"
